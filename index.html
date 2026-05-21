@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox Quest</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-wrap">
+    <div id="title-bar">
+      <span id="game-title">SANDBOX QUEST</span>
+      <span id="subtitle">A tour of sandbox-answers</span>
+    </div>
+    <div id="game-container">
+      <canvas id="canvas" width="896" height="576"></canvas>
+    </div>
+    <p id="hint">WASD / Arrow Keys to walk &nbsp;&bull;&nbsp; SPACE to talk</p>
+  </div>
+
+  <div id="overlay" class="hidden">
+    <div id="card">
+      <button id="close-btn" onclick="closeOverlay()" aria-label="Close">&#x2715;</button>
+      <div id="card-content"></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
