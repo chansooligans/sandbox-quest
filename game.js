@@ -231,11 +231,11 @@ const DIALOGUE = {
   4: "Yo! Nothing like the beach for ad-hoc research. Come hear about the whiteboard -- honestly the most underrated tool we have.",
 };
 
-// Shown when player approaches an NPC out of order
-const REDIRECT_DIALOGUE = {
-  2: "Oh hey! Start with Chansoo first -- he's up by the palms on the left. I'll be right here.",
-  3: "Hi! Go find Monika at the tiki bar first, then come back to me on the right side.",
-  4: "Yo! Chat with Nicole first -- she's on the upper right. Then swing by here after.",
+// Redirect text keyed by who the player should go to next
+const REDIRECT_TO = {
+  1: "Head over to Chansoo first -- he's up by the palms on the left!",
+  2: "Go find Monika at the tiki bar first -- she's on the lower left!",
+  3: "Check in with Nicole first -- she's on the upper right!",
 };
 
 const visited = new Set();
@@ -258,7 +258,7 @@ document.addEventListener('keydown', e => {
       if (npc) {
         const next   = nextUnvisitedNPC();
         const isNext = !next || next.id === npc.id;
-        const text   = isNext ? DIALOGUE[npc.id] : REDIRECT_DIALOGUE[npc.id];
+        const text   = isNext ? DIALOGUE[npc.id] : REDIRECT_TO[next.id];
         dialogueNpc  = { ...npc, isNext, text };
       }
     }
