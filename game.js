@@ -240,36 +240,52 @@ const REDIRECT_TO = {
 
 const visited = new Set();
 
-// ── Input ────────────────────────────────────
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
-
-  if (e.code === 'Space') {
-    e.preventDefault();
-    if (paused) return;
-    if (dialogueNpc) {
-      // Advance from dialogue to full overlay (only if in-order)
-      const npc = dialogueNpc;
-      dialogueNpc = null;
-      if (npc.isNext) openOverlay(npc.id);
-      // else: just dismiss the redirect dialogue, player walks away
-    } else {
-      const npc = nearbyNPC();
-      if (npc) {
-        const next   = nextUnvisitedNPC();
-        const isNext = !next || next.id === npc.id;
-        const text   = isNext ? DIALOGUE[npc.id] : REDIRECT_TO[next.id];
-        dialogueNpc  = { ...npc, isNext, text };
-      }
+// ── Shared action handlers ───────────────────
+function handleSpace() {
+  if (paused) { closeOverlay(); return; }
+  if (dialogueNpc) {
+    const npc = dialogueNpc;
+    dialogueNpc = null;
+    if (npc.isNext) openOverlay(npc.id);
+  } else {
+    const npc = nearbyNPC();
+    if (npc) {
+      const next   = nextUnvisitedNPC();
+      const isNext = !next || next.id === npc.id;
+      const text   = isNext ? DIALOGUE[npc.id] : REDIRECT_TO[next.id];
+      dialogueNpc  = { ...npc, isNext, text };
     }
   }
-  if (e.code === 'Escape') {
-    e.preventDefault();
-    if (paused)      closeOverlay();
-    else if (dialogueNpc) dialogueNpc = null;
-  }
+}
+
+// ── Keyboard input ───────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space')  { e.preventDefault(); handleSpace(); }
+  if (e.code === 'Escape') { e.preventDefault(); if (paused) closeOverlay(); else if (dialogueNpc) dialogueNpc = null; }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// ── Mobile touch controls ────────────────────
+const DPAD_MAP = {
+  'btn-up':    'ArrowUp',
+  'btn-down':  'ArrowDown',
+  'btn-left':  'ArrowLeft',
+  'btn-right': 'ArrowRight',
+};
+
+Object.entries(DPAD_MAP).forEach(([id, code]) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchstart', e => { e.preventDefault(); keys[code] = true;  }, { passive: false });
+  el.addEventListener('touchend',   e => { e.preventDefault(); keys[code] = false; }, { passive: false });
+  el.addEventListener('touchcancel',e => { keys[code] = false; });
+});
+
+document.getElementById('btn-space')?.addEventListener('touchstart', e => {
+  e.preventDefault();
+  handleSpace();
+}, { passive: false });
 
 // ── Collision helpers ────────────────────────
 function tileAt(px, py) {

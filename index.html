@@ -18,6 +18,22 @@
     <p id="hint">WASD / Arrow Keys to walk &nbsp;&bull;&nbsp; SPACE to talk</p>
   </div>
 
+  <!-- Mobile controls (touch devices only, shown via CSS) -->
+  <div id="mobile-controls">
+    <div id="dpad">
+      <div></div>
+      <button id="btn-up" class="dpad-btn">&#9650;</button>
+      <div></div>
+      <button id="btn-left" class="dpad-btn">&#9664;</button>
+      <div class="dpad-center"></div>
+      <button id="btn-right" class="dpad-btn">&#9654;</button>
+      <div></div>
+      <button id="btn-down" class="dpad-btn">&#9660;</button>
+      <div></div>
+    </div>
+    <button id="btn-space">TALK</button>
+  </div>
+
   <div id="overlay" class="hidden">
     <div id="card">
       <button id="close-btn" onclick="closeOverlay()" aria-label="Close">&#x2715;</button>

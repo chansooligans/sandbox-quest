@@ -61,6 +61,79 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* ── Mobile controls ── */
+#mobile-controls {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  padding: 0 24px;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@media (pointer: coarse) {
+  #mobile-controls { display: flex; }
+  #hint { display: none; }
+}
+
+#dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(3, 54px);
+  gap: 4px;
+  pointer-events: all;
+}
+
+.dpad-center {
+  background: rgba(2,54,61,0.4);
+  border-radius: 6px;
+}
+
+.dpad-btn {
+  width: 54px;
+  height: 54px;
+  background: rgba(2,54,61,0.82);
+  border: 2px solid #218c88;
+  border-radius: 10px;
+  color: #a8e6e1;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: none;
+}
+
+.dpad-btn:active {
+  background: rgba(33,140,136,0.6);
+}
+
+#btn-space {
+  width: 90px;
+  height: 54px;
+  background: rgba(2,54,61,0.82);
+  border: 2px solid #218c88;
+  border-radius: 10px;
+  color: #a8e6e1;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  pointer-events: all;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: none;
+}
+
+#btn-space:active {
+  background: rgba(33,140,136,0.6);
+}
+
 /* ── Overlay ── */
 #overlay {
   position: fixed;
