@@ -239,9 +239,11 @@ const REDIRECT_TO = {
 };
 
 const visited = new Set();
+let completionActive = false;
 
 // ── Shared action handlers ───────────────────
 function handleSpace() {
+  if (completionActive) { completionActive = false; return; }
   if (paused) { closeOverlay(); return; }
   if (dialogueNpc) {
     const npc = dialogueNpc;
@@ -374,6 +376,7 @@ function openOverlay(topicId) {
 function closeOverlay() {
   document.getElementById('overlay').classList.add('hidden');
   paused = false;
+  if (visited.size === NPCS.length) completionActive = true;
 }
 
 window.openOverlay  = openOverlay;
@@ -742,6 +745,64 @@ function drawDialogue(npc) {
   }
 }
 
+// ── Completion dialogue ───────────────────────
+function drawCompletionDialogue() {
+  const pad    = 16;
+  const portW  = 56;
+  const portGap = 12;
+  const boxH   = 130;
+  const boxY   = H - boxH - pad;
+  const boxW   = W - pad * 2;
+
+  // Panel
+  roundRect(pad, boxY, boxW, boxH, 12);
+  ctx.fillStyle = 'rgba(2,54,61,0.96)';
+  ctx.fill();
+  ctx.strokeStyle = '#a8e6e1';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // All 4 NPC portraits in a row
+  const totalPortraits = NPCS.length;
+  const rowW = totalPortraits * portW + (totalPortraits - 1) * portGap;
+  const rowX = pad + (boxW - rowW) / 2;
+  const rowY = boxY + 12;
+  NPCS.forEach((npc, i) => {
+    const img = npcImgs[npc.sprite];
+    const px  = rowX + i * (portW + portGap);
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.drawImage(img, px, rowY, portW, portW);
+    }
+    // Name under portrait
+    ctx.fillStyle    = 'rgba(168,230,225,0.7)';
+    ctx.font         = '9px monospace';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(NPC_NAMES[npc.id], px + portW / 2, rowY + portW + 2);
+  });
+
+  // Message
+  const msgY = rowY + portW + 18;
+  ctx.fillStyle    = '#fff';
+  ctx.font         = 'bold 14px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText("Great job! You've explored the whole beach.", W / 2, msgY);
+
+  ctx.fillStyle = 'rgba(168,230,225,0.85)';
+  ctx.font      = '13px sans-serif';
+  ctx.fillText("Now go build something amazing.", W / 2, msgY + 22);
+
+  // Blinking dismiss prompt
+  if (Math.floor(tick / 22) % 2 === 0) {
+    ctx.fillStyle    = 'rgba(168,230,225,0.6)';
+    ctx.font         = 'bold 11px monospace';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('SPACE to dismiss', pad + boxW - 10, boxY + boxH - 8);
+  }
+}
+
 // ── Caustic words floating in ocean ──────────
 const CAUSTIC_WORDS = ['caustic','caustic','caustic','caustic','caustic'];
 const CAUSTIC_SLOTS = CAUSTIC_WORDS.map((w, i) => ({
@@ -932,6 +993,9 @@ function render() {
 
   // Dialogue box (renders on top of everything in the canvas)
   if (dialogueNpc) drawDialogue(dialogueNpc);
+
+  // Completion message after all 4 NPCs visited
+  if (completionActive) drawCompletionDialogue();
 }
 
 // ── Main loop ────────────────────────────────
