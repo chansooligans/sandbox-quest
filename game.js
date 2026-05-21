@@ -231,6 +231,13 @@ const DIALOGUE = {
   4: "Yo! Nothing like the beach for ad-hoc research. Come hear about the whiteboard -- honestly the most underrated tool we have.",
 };
 
+// Shown when player approaches an NPC out of order
+const REDIRECT_DIALOGUE = {
+  2: "Oh hey! Start with Chansoo first -- he's up by the palms on the left. I'll be right here.",
+  3: "Hi! Go find Monika at the tiki bar first, then come back to me on the right side.",
+  4: "Yo! Chat with Nicole first -- she's on the upper right. Then swing by here after.",
+};
+
 const visited = new Set();
 
 // ── Input ────────────────────────────────────
@@ -241,13 +248,19 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (paused) return;
     if (dialogueNpc) {
-      // Advance from dialogue to full overlay
+      // Advance from dialogue to full overlay (only if in-order)
       const npc = dialogueNpc;
       dialogueNpc = null;
-      openOverlay(npc.id);
+      if (npc.isNext) openOverlay(npc.id);
+      // else: just dismiss the redirect dialogue, player walks away
     } else {
       const npc = nearbyNPC();
-      if (npc) dialogueNpc = npc;
+      if (npc) {
+        const next   = nextUnvisitedNPC();
+        const isNext = !next || next.id === npc.id;
+        const text   = isNext ? DIALOGUE[npc.id] : REDIRECT_DIALOGUE[npc.id];
+        dialogueNpc  = { ...npc, isNext, text };
+      }
     }
   }
   if (e.code === 'Escape') {
@@ -694,22 +707,22 @@ function drawDialogue(npc) {
   ctx.textBaseline = 'top';
   ctx.fillText(NPC_NAMES[npc.id], pad + 84, boxY + 10);
 
-  // Dialogue text
+  // Dialogue text (either normal or redirect)
   const textMaxW = boxW - 84 - 80;
-  const lines = wrapText(DIALOGUE[npc.id], textMaxW);
+  const lines = wrapText(npc.text, textMaxW);
   ctx.fillStyle = '#fff';
   ctx.font      = '13px sans-serif';
   lines.slice(0, 3).forEach((ln, i) => {
     ctx.fillText(ln, pad + 84, boxY + 30 + i * 20);
   });
 
-  // Blinking "SPACE >" prompt
+  // Blinking prompt — "SPACE to continue" or "SPACE to dismiss redirect"
   if (Math.floor(tick / 22) % 2 === 0) {
     ctx.fillStyle    = '#a8e6e1';
     ctx.font         = 'bold 11px monospace';
     ctx.textAlign    = 'right';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('SPACE >', pad + boxW - 8, boxY + boxH - 8);
+    ctx.fillText(npc.isNext ? 'SPACE >' : 'Got it  SPACE', pad + boxW - 8, boxY + boxH - 8);
   }
 }
 
