@@ -34,9 +34,7 @@ const MAP = [
 
 // Non-walkable decorations (tile col,row → obstacle)
 const OBSTACLES = new Set([
-  '5,6', '6,6',                           // tiki bar
-  '8,7', '9,7', '10,7',                   // pool row 1
-  '8,8', '9,8', '10,8',                   // pool row 2
+  '5,6', '6,6',   // tiki bar
 ]);
 
 // ── NPC content ─────────────────────────────
@@ -83,7 +81,7 @@ const CONTENT = {
   2: {
     title: 'Clear Rates Automation',
     subtitle: 'From Slack message to validated feature in production.',
-    sprite: 'chansoo_right',
+    sprite: 'monika_down',
     sections: [
       {
         heading: 'The workflow',
@@ -106,7 +104,7 @@ const CONTENT = {
   3: {
     title: 'Creating Interactive Apps',
     subtitle: 'Turning Trino queries into shareable tools for PMs and SEs.',
-    sprite: 'chansoo_left',
+    sprite: 'nicole_down',
     sections: [
       {
         heading: 'sandbox-apps is a Heroku submodule',
@@ -177,10 +175,10 @@ const CONTENT = {
 
 // ── NPC definitions ──────────────────────────
 const NPCS = [
-  { id: 1, tx: 3,  ty: 5, sprite: 'chansoo_down',  label: 'Intro' },
-  { id: 2, tx: 3,  ty: 8, sprite: 'chansoo_right', label: 'Clear Rates' },
-  { id: 3, tx: 11, ty: 5, sprite: 'chansoo_left',  label: 'Apps' },
-  { id: 4, tx: 12, ty: 8, sprite: 'nick_down',     label: 'Whiteboard' },
+  { id: 1, tx: 3,  ty: 5, sprite: 'chansoo_down', label: 'Intro' },
+  { id: 2, tx: 3,  ty: 8, sprite: 'monika_down',  label: 'Clear Rates' },
+  { id: 3, tx: 11, ty: 5, sprite: 'nicole_down',  label: 'Apps' },
+  { id: 4, tx: 12, ty: 8, sprite: 'nick_down',    label: 'Whiteboard' },
 ];
 
 // ── Image loader ─────────────────────────────
@@ -204,8 +202,8 @@ for (const dir of ['down', 'up', 'left', 'right']) {
 
 const npcImgs = {
   chansoo_down:  loadImg('assets/npcs/chansoo_down.png'),
-  chansoo_left:  loadImg('assets/npcs/chansoo_left.png'),
-  chansoo_right: loadImg('assets/npcs/chansoo_right.png'),
+  monika_down:   loadImg('assets/npcs/monika_down.png'),
+  nicole_down:   loadImg('assets/npcs/nicole_down.png'),
   nick_down:     loadImg('assets/npcs/nick_down.png'),
 };
 
@@ -298,12 +296,13 @@ function openOverlay(topicId) {
   const sprite = npcImgs[data.sprite];
   const el     = document.getElementById('card-content');
 
+  const npcNames = { 1: 'Chansoo', 2: 'Monika', 3: 'Nicole', 4: 'Nick' };
   el.innerHTML = `
     <div class="overlay-header">
       <div class="overlay-npc">
-        <img src="${sprite.src}" alt="Chansoo" />
+        <img src="${sprite.src}" alt="${npcNames[topicId]}" />
         <div>
-          <div class="overlay-npc-label">Chansoo · Data Science</div>
+          <div class="overlay-npc-label">${npcNames[topicId]} · Data Science</div>
           <div class="overlay-title">${data.title}</div>
           <div class="overlay-subtitle">${data.subtitle}</div>
         </div>
@@ -528,85 +527,77 @@ function drawTikiBar(px, py) {
   ctx.fillText('TIKI BAR', px + bw/2, py + TILE * 0.55);
 }
 
-// Pool spanning 3×2 tiles at pixel (px, py)
-function drawPool(px, py) {
-  const pw = TILE * 3;
-  const ph = TILE * 2;
+// Beach chair at pixel (px, py), color = towel stripe color
+function drawBeachChair(px, py, towelColor) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(px + 18, py + 44, 20, 7, 0, 0, Math.PI*2);
+  ctx.fill();
 
-  // Sand underneath (3×2 tiles)
-  for (let r = 0; r < 2; r++) {
-    for (let c = 0; c < 3; c++) {
-      drawSand(Math.floor(px/TILE)+c, Math.floor(py/TILE)+r);
-    }
-  }
-
-  // Pool surround (tile deck)
-  ctx.fillStyle = '#e8e0d0';
-  ctx.fillRect(px, py, pw, ph);
-
-  // Water
-  const poolInset = 12;
-  const poolW = pw - poolInset*2;
-  const poolH = ph - poolInset*2;
-  const poolX = px + poolInset;
-  const poolY = py + poolInset;
-
-  // Animated water color
-  const wave = Math.sin(tick * 0.04) * 5;
-  ctx.fillStyle = `rgb(${Math.round(30+wave)},${Math.round(140+wave)},${Math.round(200+wave)})`;
-  ctx.fillRect(poolX, poolY, poolW, poolH);
-
-  // Lane dividers
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth   = 1.5;
-  for (let i = 1; i < 3; i++) {
-    const lx = poolX + poolW * i/3;
-    ctx.beginPath();
-    ctx.setLineDash([6, 6]);
-    ctx.moveTo(lx, poolY);
-    ctx.lineTo(lx, poolY + poolH);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-
-  // Ripples
-  const rTime = tick * 0.06;
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth   = 1;
-  [[0.3,0.4],[0.7,0.6],[0.5,0.25],[0.2,0.75],[0.8,0.3]].forEach(([rx,ry],i) => {
-    const rad = ((rTime + i*1.3) % 4) * 8 + 2;
-    ctx.beginPath();
-    ctx.arc(poolX + poolW*rx, poolY + poolH*ry, rad, 0, Math.PI*2);
-    ctx.stroke();
-  });
-
-  // Pool border
-  ctx.strokeStyle = '#aaa';
-  ctx.lineWidth   = 2;
-  ctx.strokeRect(poolX, poolY, poolW, poolH);
-
-  // Ladder rungs at left edge
-  ctx.strokeStyle = '#888';
+  // Legs
+  ctx.strokeStyle = '#a0784a';
   ctx.lineWidth   = 3;
-  ctx.beginPath();
-  ctx.moveTo(poolX, poolY + 10);
-  ctx.lineTo(poolX, poolY + 40);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(poolX - 4, poolY + 10);
-  ctx.lineTo(poolX + 4, poolY + 10);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(poolX - 4, poolY + 25);
-  ctx.lineTo(poolX + 4, poolY + 25);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px + 6,  py + 42); ctx.lineTo(px + 12, py + 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px + 30, py + 42); ctx.lineTo(px + 26, py + 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px + 4,  py + 35); ctx.lineTo(px + 34, py + 35); ctx.stroke();
 
-  // Label
-  ctx.fillStyle = '#777';
-  ctx.font = 'bold 8px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText('POOL', px + pw/2, py + ph - 2);
+  // Seat / back canvas (reclined)
+  ctx.fillStyle = towelColor;
+  ctx.beginPath();
+  ctx.moveTo(px + 8,  py + 42);
+  ctx.lineTo(px + 30, py + 42);
+  ctx.lineTo(px + 28, py + 18);
+  ctx.lineTo(px + 10, py + 18);
+  ctx.closePath();
+  ctx.fill();
+
+  // Stripe
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth   = 2;
+  ctx.beginPath(); ctx.moveTo(px + 15, py + 19); ctx.lineTo(px + 13, py + 41); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px + 22, py + 19); ctx.lineTo(px + 20, py + 41); ctx.stroke();
+
+  // Pillow
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.ellipse(px + 18, py + 18, 9, 5, -0.2, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// Beach ball at pixel center (cx, cy), radius r
+function drawBeachBall(cx, cy, r) {
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + r - 3, r * 0.8, r * 0.3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Ball segments (6 colors)
+  const ballColors = ['#e74c3c','#f39c12','#2ecc71','#3498db','#9b59b6','#e74c3c'];
+  for (let i = 0; i < 6; i++) {
+    const a1 = (Math.PI / 3) * i;
+    const a2 = (Math.PI / 3) * (i + 1);
+    ctx.fillStyle = ballColors[i];
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a1, a2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(cx - r*0.25, cy - r*0.25, r*0.3, r*0.2, -0.5, 0, Math.PI*2);
+  ctx.fill();
+
+  // Outline
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.stroke();
 }
 
 function drawMap() {
@@ -731,7 +722,18 @@ function render() {
   // Decorations drawn on top of sand, before characters
   drawUmbrella(7, 3);
   drawTikiBar(5 * TILE, 6 * TILE);
-  drawPool(8 * TILE, 7 * TILE);
+
+  // Beach chairs (pixel x, y, towel color)
+  drawBeachChair(8  * TILE + 8,  7 * TILE + 16, '#e74c3c');
+  drawBeachChair(9  * TILE + 12, 7 * TILE + 22, '#3498db');
+  drawBeachChair(10 * TILE + 4,  8 * TILE + 8,  '#f39c12');
+  drawBeachChair(11 * TILE + 6,  8 * TILE + 18, '#9b59b6');
+
+  // Beach balls scattered around
+  drawBeachBall(8  * TILE + 50, 8  * TILE + 30, 12);
+  drawBeachBall(10 * TILE + 10, 9  * TILE + 20, 10);
+  drawBeachBall(13 * TILE + 20, 7  * TILE + 40, 11);
+  drawBeachBall(5  * TILE + 30, 9  * TILE + 10, 9);
 
   const nearby = nearbyNPC();
 
