@@ -126,7 +126,7 @@ const CONTENT = {
           </li>
           <li>
             <a href="https://data-sandbox-apps.turquoise.health/apps/pet-qa/" target="_blank">PET QA</a>
-            — built by Monika + Corey to QA provider enrollment tables
+            — built by Monika + Corey to QA Patient Estimate Tool outputs
           </li>
         </ul>
         <br>
@@ -218,20 +218,42 @@ const player = {
 };
 
 const keys = {};
-let paused = false;
-let tick   = 0;
+let paused      = false;
+let dialogueNpc = null;   // NPC currently showing pre-overlay dialogue
+let tick        = 0;
+
+const NPC_NAMES = { 1: 'Chansoo', 2: 'Monika', 3: 'Nicole', 4: 'Nick' };
+
+const DIALOGUE = {
+  1: "Waves are perfect today! Pull up a beach chair -- I want to show you around sandbox-answers, the monorepo we use for all our data science work.",
+  2: "Hey! Tiki bar is open. Come over and I'll walk you through how we build Clear Rates features -- from a Slack message all the way to production.",
+  3: "Hi! Great day for a beach demo. Let me tell you how Claude helps us spin up interactive apps straight from Trino queries.",
+  4: "Yo! Nothing like the beach for ad-hoc research. Come hear about the whiteboard -- honestly the most underrated tool we have.",
+};
+
+const visited = new Set();
 
 // ── Input ────────────────────────────────────
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
 
-  if (e.code === 'Space' && !paused) {
+  if (e.code === 'Space') {
     e.preventDefault();
-    tryInteract();
+    if (paused) return;
+    if (dialogueNpc) {
+      // Advance from dialogue to full overlay
+      const npc = dialogueNpc;
+      dialogueNpc = null;
+      openOverlay(npc.id);
+    } else {
+      const npc = nearbyNPC();
+      if (npc) dialogueNpc = npc;
+    }
   }
-  if (e.code === 'Escape' && paused) {
+  if (e.code === 'Escape') {
     e.preventDefault();
-    closeOverlay();
+    if (paused)      closeOverlay();
+    else if (dialogueNpc) dialogueNpc = null;
   }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -292,17 +314,18 @@ function tryInteract() {
 
 function openOverlay(topicId) {
   paused = true;
+  visited.add(topicId);
   const data   = CONTENT[topicId];
   const sprite = npcImgs[data.sprite];
   const el     = document.getElementById('card-content');
+  const name   = NPC_NAMES[topicId];
 
-  const npcNames = { 1: 'Chansoo', 2: 'Monika', 3: 'Nicole', 4: 'Nick' };
   el.innerHTML = `
     <div class="overlay-header">
       <div class="overlay-npc">
-        <img src="${sprite.src}" alt="${npcNames[topicId]}" />
+        <img src="${sprite.src}" alt="${name}" />
         <div>
-          <div class="overlay-npc-label">${npcNames[topicId]} · Data Science</div>
+          <div class="overlay-npc-label">${name} · Data Science</div>
           <div class="overlay-title">${data.title}</div>
           <div class="overlay-subtitle">${data.subtitle}</div>
         </div>
@@ -314,13 +337,6 @@ function openOverlay(topicId) {
         <div class="overlay-body">${s.body}</div>
       </div>
     `).join('')}
-    <div class="overlay-nav">
-      ${NPCS.map(n => `
-        <button class="overlay-nav-btn" onclick="openOverlay(${n.id})">
-          <span class="npc-number">${n.id}</span>${CONTENT[n.id].title.split(' ').slice(0, 3).join(' ')}
-        </button>
-      `).join('')}
-    </div>
   `;
 
   document.getElementById('overlay').classList.remove('hidden');
@@ -600,6 +616,128 @@ function drawBeachBall(cx, cy, r) {
   ctx.stroke();
 }
 
+// ── Text wrapping helper ─────────────────────
+function wrapText(text, maxW) {
+  ctx.font = '14px sans-serif';
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// ── Pulsing highlight for next unvisited NPC ─
+function nextUnvisitedNPC() {
+  return NPCS.find(n => !visited.has(n.id)) || null;
+}
+
+function drawHighlight(npc) {
+  const cx    = npc.tx * TILE + TILE / 2;
+  const cy    = npc.ty * TILE + TILE / 2;
+  const pulse = Math.sin(tick * 0.07) * 0.5 + 0.5;
+
+  // Pulsing glow rings
+  ctx.lineWidth = 2;
+  for (let i = 3; i >= 1; i--) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, TILE/2 + i*6 + pulse*4, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(168,230,225,${0.1 * i * (0.4 + pulse*0.6)})`;
+    ctx.stroke();
+  }
+
+  // Bouncing arrow above NPC
+  const arrowX = cx;
+  const arrowY = npc.ty * TILE - 28 - Math.abs(Math.sin(tick * 0.1)) * 8;
+  ctx.fillStyle = `rgba(168,230,225,${0.7 + pulse * 0.3})`;
+  ctx.beginPath();
+  ctx.moveTo(arrowX, arrowY + 14);
+  ctx.lineTo(arrowX - 9, arrowY);
+  ctx.lineTo(arrowX + 9, arrowY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ── Dialogue box (Pokemon-style) ─────────────
+function drawDialogue(npc) {
+  const pad  = 16;
+  const boxH = 96;
+  const boxY = H - boxH - pad;
+  const boxW = W - pad * 2;
+
+  // Background panel
+  roundRect(pad, boxY, boxW, boxH, 10);
+  ctx.fillStyle = 'rgba(2,54,61,0.94)';
+  ctx.fill();
+  ctx.strokeStyle = '#218c88';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // NPC portrait
+  const img = npcImgs[npc.sprite];
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, pad + 10, boxY + 10, 64, 64);
+  }
+
+  // Name
+  ctx.fillStyle = '#a8e6e1';
+  ctx.font      = 'bold 13px monospace';
+  ctx.textAlign    = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(NPC_NAMES[npc.id], pad + 84, boxY + 10);
+
+  // Dialogue text
+  const textMaxW = boxW - 84 - 80;
+  const lines = wrapText(DIALOGUE[npc.id], textMaxW);
+  ctx.fillStyle = '#fff';
+  ctx.font      = '13px sans-serif';
+  lines.slice(0, 3).forEach((ln, i) => {
+    ctx.fillText(ln, pad + 84, boxY + 30 + i * 20);
+  });
+
+  // Blinking "SPACE >" prompt
+  if (Math.floor(tick / 22) % 2 === 0) {
+    ctx.fillStyle    = '#a8e6e1';
+    ctx.font         = 'bold 11px monospace';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('SPACE >', pad + boxW - 8, boxY + boxH - 8);
+  }
+}
+
+// ── Caustic words floating in ocean ──────────
+const CAUSTIC_WORDS = ['caustic','caustic','caustic','caustic','caustic'];
+const CAUSTIC_SLOTS = CAUSTIC_WORDS.map((w, i) => ({
+  word: w,
+  // pseudo-random stable positions spread across ocean rows 0-2
+  xPhase: (i * 2.3 + 0.7),
+  yBase:  (i % 3) * TILE + TILE * 0.4,
+  speed:  0.006 + i * 0.002,
+  alpha:  0.3 + (i % 3) * 0.15,
+}));
+
+function drawCausticWords() {
+  ctx.font      = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  CAUSTIC_SLOTS.forEach(slot => {
+    const x     = (W * 0.1) + (W * 0.8) * ((Math.sin(tick * slot.speed + slot.xPhase) * 0.5 + 0.5));
+    const y     = slot.yBase + Math.sin(tick * slot.speed * 1.7 + slot.xPhase) * 10;
+    const alpha = slot.alpha * (0.6 + 0.4 * Math.sin(tick * slot.speed * 2.3 + slot.xPhase));
+    ctx.fillStyle = `rgba(168,230,225,${alpha.toFixed(2)})`;
+    ctx.fillText(slot.word, x, y);
+  });
+}
+
 function drawMap() {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
@@ -632,16 +770,17 @@ function drawNPC(npc) {
     ctx.fill();
   }
 
-  // Topic number badge
-  ctx.fillStyle = '#02363d';
-  ctx.beginPath();
-  ctx.arc(px + TILE - 12, py + 10, 10, 0, Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle    = '#a8e6e1';
+  // Name label below sprite
+  ctx.fillStyle    = 'rgba(2,54,61,0.82)';
   ctx.font         = 'bold 11px monospace';
   ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(npc.id, px + TILE - 12, py + 10);
+  ctx.textBaseline = 'top';
+  const name = NPC_NAMES[npc.id];
+  const lw   = ctx.measureText(name).width + 10;
+  roundRect(px + TILE/2 - lw/2, py + TILE + 2, lw, 16, 4);
+  ctx.fill();
+  ctx.fillStyle = '#a8e6e1';
+  ctx.fillText(name, px + TILE/2, py + TILE + 4);
 }
 
 function drawSPACEPrompt(npc) {
@@ -681,11 +820,22 @@ function drawPlayer() {
     ctx.arc(player.x + 32, player.y + 12, 12, 0, Math.PI*2);
     ctx.fill();
   }
+
+  // "You" label below player
+  ctx.fillStyle    = 'rgba(2,54,61,0.82)';
+  ctx.font         = 'bold 11px monospace';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'top';
+  const lw = ctx.measureText('You').width + 10;
+  roundRect(player.x + TILE/2 - lw/2, player.y + TILE + 2, lw, 16, 4);
+  ctx.fill();
+  ctx.fillStyle = '#a8e6e1';
+  ctx.fillText('You', player.x + TILE/2, player.y + TILE + 4);
 }
 
 // ── Update ───────────────────────────────────
 function update() {
-  if (paused) return;
+  if (paused || dialogueNpc) return;
 
   let dx = 0, dy = 0;
   if (keys['ArrowLeft']  || keys['KeyA']) { dx = -SPEED; player.dir = 'left'; }
@@ -709,7 +859,6 @@ function update() {
     player.frame = player.frameTick = 0;
   }
 
-  tick++;
 }
 
 // ── Render ───────────────────────────────────
@@ -735,6 +884,13 @@ function render() {
   drawBeachBall(13 * TILE + 20, 7  * TILE + 40, 11);
   drawBeachBall(5  * TILE + 30, 9  * TILE + 10, 9);
 
+  // Caustic-light words rippling in the ocean
+  drawCausticWords();
+
+  // Highlight next unvisited NPC
+  const nextNpc = nextUnvisitedNPC();
+  if (nextNpc) drawHighlight(nextNpc);
+
   const nearby = nearbyNPC();
 
   // Z-sort: NPCs above player row drawn first (behind player)
@@ -742,11 +898,16 @@ function render() {
   drawPlayer();
   NPCS.forEach(npc => { if (npc.ty > player.ty)  drawNPC(npc); });
 
-  if (nearby) drawSPACEPrompt(nearby);
+  // SPACE prompt only when not in dialogue
+  if (nearby && !dialogueNpc) drawSPACEPrompt(nearby);
+
+  // Dialogue box (renders on top of everything in the canvas)
+  if (dialogueNpc) drawDialogue(dialogueNpc);
 }
 
 // ── Main loop ────────────────────────────────
 function loop() {
+  tick++;
   update();
   render();
   requestAnimationFrame(loop);
