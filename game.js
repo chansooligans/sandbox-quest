@@ -2,13 +2,13 @@
 // Sandbox Quest — Beach RPG demo for sandbox-answers
 // ─────────────────────────────────────────────
 
-const TILE  = 64;          // px per tile
-const COLS  = 14;
-const ROWS  = 9;
-const W     = COLS * TILE; // 896
-const H     = ROWS * TILE; // 576
-const SPEED = 3;           // px per frame
-const WALK_FPS = 8;        // game frames per animation frame
+const TILE     = 64;
+const COLS     = 16;
+const ROWS     = 11;
+const W        = COLS * TILE;   // 1024
+const H        = ROWS * TILE;   // 704
+const SPEED    = 3;
+const WALK_FPS = 8;
 
 // ── Tile types ──────────────────────────────
 const SAND  = 0;
@@ -17,18 +17,27 @@ const PALM  = 2;
 
 const WALKABLE = new Set([SAND]);
 
-// ── Tile map (14 cols × 9 rows) ─────────────
+// ── Tile map (16 cols × 11 rows) ────────────
 const MAP = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  [2,0,0,0,0,0,0,0,0,0,0,0,0,2],
-  [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  [2,0,0,0,0,0,0,0,0,0,0,0,0,2],
-  [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 ];
+
+// Non-walkable decorations (tile col,row → obstacle)
+const OBSTACLES = new Set([
+  '5,6', '6,6',                           // tiki bar
+  '8,7', '9,7', '10,7',                   // pool row 1
+  '8,8', '9,8', '10,8',                   // pool row 2
+]);
 
 // ── NPC content ─────────────────────────────
 const CONTENT = {
@@ -39,22 +48,32 @@ const CONTENT = {
     sections: [
       {
         heading: 'What is sandbox-answers?',
-        body: `<strong>sandbox-answers</strong> is a <strong>monorepo</strong> — a single Git repository that houses multiple related projects:
+        body: `<strong>sandbox-answers</strong> is a <strong>monorepo</strong> — a single Git repository that houses multiple related projects under one roof:
         <ul>
           <li><code>airflow_dags/</code> — Airflow DAG code for Clear Rates and other pipelines</li>
           <li><code>sandbox-apps/</code> — Heroku-hosted interactive data apps (Flask + JS)</li>
+          <li><code>cld-utils/</code> — Utility tables (benchmarks, codesets, crosswalks)</li>
           <li><code>references/</code> — Documentation, QA standards, conventions</li>
         </ul>`,
       },
       {
-        heading: 'Git Submodules',
-        body: `Each project lives in its own repo. sandbox-answers links to them via <strong>git submodules</strong> — pointers defined in a <code>.gitmodules</code> file.
+        heading: 'Git Submodules + .gitmodules',
+        body: `Each of those projects lives in its own Git repo. sandbox-answers links to them as <strong>git submodules</strong> — tracked via a <code>.gitmodules</code> file at the repo root.
         <br><br>
-        Think of it as a parent repo that knows the exact commit of each child repo. The parent and children can evolve independently, but the parent always tracks a specific snapshot.`,
+        The file looks like this:
+        <br><br>
+        <code>[submodule "airflow_dags"]<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;path = airflow_dags<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;url = git@github.com:turquoisehealth/airflow_dags.git<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;branch = develop</code>
+        <br><br>
+        Each entry tells Git: <em>at this path, check out this repo at this branch.</em> The parent repo stores a pointer to a specific commit — not the full code.
+        <br><br>
+        When you clone sandbox-answers fresh, run <code>git submodule update --init --recursive</code> to pull all submodule code down. Run <code>git submodule update --remote</code> to sync to the latest commit on each submodule's tracked branch.`,
       },
       {
         heading: 'Why does the monorepo help Claude?',
-        body: `When you ask Claude a question, it needs context — code, docs, and conventions. The monorepo structure lets Claude find all of this from <strong>one context window</strong>. It can search DAG code, app code, and reference docs simultaneously without switching between repos.
+        body: `When Claude answers a question or writes code, it needs context — the relevant source code, the docs, and the conventions. The monorepo structure lets Claude find all of this from <strong>one context window</strong>: it can search DAG logic, app code, and reference docs simultaneously without jumping between repos.
         <br><br>
         <a href="https://github.com/turquoisehealth/sandbox-answers" target="_blank">→ View sandbox-answers on GitHub</a>`,
       },
@@ -71,7 +90,7 @@ const CONTENT = {
         body: `<ol>
           <li>Feature request or bug is flagged in <strong>Slack</strong></li>
           <li>A <strong>Jira ticket</strong> is created from Slack</li>
-          <li>The <code>/jira</code> skill investigates the ticket and drafts a PR with the relevant code changes</li>
+          <li>The <code>/jira</code> skill investigates the ticket and drafts a PR with the relevant code changes in <code>airflow_dags/</code></li>
           <li>The <code>/test-pr</code> skill runs a <strong>mini Clear Rates pipeline</strong> — a handful of billing codes, providers, and networks — to validate the changes end-to-end</li>
         </ol>`,
       },
@@ -90,8 +109,15 @@ const CONTENT = {
     sprite: 'chansoo_left',
     sections: [
       {
-        heading: 'Why build apps?',
-        body: `Exploratory tools help PMs and SEs dig into data analysis results on their own — no SQL needed. Claude can spin one up end-to-end: run Trino queries, analyze findings, build the app, and deploy it.`,
+        heading: 'sandbox-apps is a Heroku submodule',
+        body: `<code>sandbox-apps/</code> is one of the submodules inside sandbox-answers. It's a Flask + JavaScript app deployed on <strong>Heroku</strong>.
+        <br><br>
+        Because it's a submodule, Claude can write code directly into it from sandbox-answers — creating new app pages, adding data scripts, and triggering a deploy — all in one conversation. The workflow is:
+        <ol>
+          <li>Run <strong>Trino queries</strong> to pull and analyze the data</li>
+          <li>Build a Flask route + HTML/JS frontend for exploring it</li>
+          <li>Push to the <code>sandbox-apps</code> submodule and deploy to Heroku</li>
+        </ol>`,
       },
       {
         heading: 'Recent examples',
@@ -106,7 +132,7 @@ const CONTENT = {
           </li>
         </ul>
         <br>
-        There are dozens of these. Browse them all:
+        There are dozens of these. Browse the full gallery:
         <br>
         <a href="https://data-sandbox-apps.turquoise.health/" target="_blank">→ Full app gallery</a>`,
       },
@@ -116,7 +142,7 @@ const CONTENT = {
   4: {
     title: 'Data Sandbox Whiteboard',
     subtitle: 'Ad-hoc research without the overhead of a full app.',
-    sprite: 'chansoo_up',
+    sprite: 'nick_down',
     sections: [
       {
         heading: 'What is it?',
@@ -149,12 +175,12 @@ const CONTENT = {
   },
 };
 
-// ── NPC definitions (tile positions + which content) ─
+// ── NPC definitions ──────────────────────────
 const NPCS = [
-  { id: 1, tx: 3,  ty: 4, facing: 'down',  label: 'Intro' },
-  { id: 2, tx: 3,  ty: 7, facing: 'right', label: 'Clear Rates' },
-  { id: 3, tx: 10, ty: 4, facing: 'left',  label: 'Apps' },
-  { id: 4, tx: 10, ty: 7, facing: 'up',    label: 'Whiteboard' },
+  { id: 1, tx: 3,  ty: 5, sprite: 'chansoo_down',  label: 'Intro' },
+  { id: 2, tx: 3,  ty: 8, sprite: 'chansoo_right', label: 'Clear Rates' },
+  { id: 3, tx: 11, ty: 5, sprite: 'chansoo_left',  label: 'Apps' },
+  { id: 4, tx: 12, ty: 8, sprite: 'nick_down',     label: 'Whiteboard' },
 ];
 
 // ── Image loader ─────────────────────────────
@@ -176,15 +202,17 @@ for (const dir of ['down', 'up', 'left', 'right']) {
   }
 }
 
-const npcImgs = {};
-for (const dir of ['down', 'left', 'right', 'up']) {
-  npcImgs[`chansoo_${dir}`] = loadImg(`assets/npcs/chansoo_${dir}.png`);
-}
+const npcImgs = {
+  chansoo_down:  loadImg('assets/npcs/chansoo_down.png'),
+  chansoo_left:  loadImg('assets/npcs/chansoo_left.png'),
+  chansoo_right: loadImg('assets/npcs/chansoo_right.png'),
+  nick_down:     loadImg('assets/npcs/nick_down.png'),
+};
 
 // ── Game state ───────────────────────────────
 const player = {
-  x: 6 * TILE,  // pixel x of sprite top-left (aligned to tile grid)
-  y: 6 * TILE,
+  x: 7 * TILE,
+  y: 7 * TILE,
   dir: 'down',
   moving: false,
   frame: 0,
@@ -193,7 +221,7 @@ const player = {
 
 const keys = {};
 let paused = false;
-let tick = 0;
+let tick   = 0;
 
 // ── Input ────────────────────────────────────
 document.addEventListener('keydown', e => {
@@ -218,12 +246,15 @@ function tileAt(px, py) {
   return MAP[ty][tx];
 }
 
+function isObstacle(tx, ty) {
+  return OBSTACLES.has(`${tx},${ty}`);
+}
+
 function npcAt(tx, ty) {
   return NPCS.some(n => n.tx === tx && n.ty === ty);
 }
 
 function canWalkTo(nx, ny) {
-  // Use a narrow hitbox at the bottom of the sprite (feet area)
   const margin = 10;
   const footY  = ny + TILE - 6;
   const corners = [
@@ -236,7 +267,7 @@ function canWalkTo(nx, ny) {
     if (!WALKABLE.has(tileAt(cx, cy))) return false;
     const ntx = Math.floor(cx / TILE);
     const nty = Math.floor(cy / TILE);
-    if (npcAt(ntx, nty)) return false;
+    if (npcAt(ntx, nty) || isObstacle(ntx, nty)) return false;
   }
   return true;
 }
@@ -246,15 +277,12 @@ function nearbyNPC() {
   const pcx = player.x + TILE / 2;
   const pcy = player.y + TILE / 2;
   let closest = null;
-  let bestDist = TILE * 1.6;
+  let bestDist = TILE * 1.7;
   for (const npc of NPCS) {
     const ncx = npc.tx * TILE + TILE / 2;
     const ncy = npc.ty * TILE + TILE / 2;
     const dist = Math.hypot(pcx - ncx, pcy - ncy);
-    if (dist < bestDist) {
-      bestDist = dist;
-      closest = npc;
-    }
+    if (dist < bestDist) { bestDist = dist; closest = npc; }
   }
   return closest;
 }
@@ -304,7 +332,6 @@ function closeOverlay() {
   paused = false;
 }
 
-// Expose globally for onclick handlers
 window.openOverlay  = openOverlay;
 window.closeOverlay = closeOverlay;
 
@@ -330,60 +357,56 @@ function roundRect(x, y, w, h, r) {
 // ── Tile renderers ───────────────────────────
 function drawWater(col, row) {
   const wave = Math.sin(tick * 0.04 + col * 0.5 + row * 0.3) * 10;
-  const r    = Math.round(24 + wave * 0.5);
-  const g    = Math.round(100 + wave * 0.6);
-  const b    = Math.round(185 + wave * 0.4);
+  const r = Math.round(24 + wave * 0.5);
+  const g = Math.round(100 + wave * 0.6);
+  const b = Math.round(185 + wave * 0.4);
   ctx.fillStyle = `rgb(${r},${g},${b})`;
   ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
 
-  // Foam lines
   ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth   = 2;
-  const fo = ((tick * 0.8 + col * 9) % TILE);
+  const fo = (tick * 0.8 + col * 9) % TILE;
   ctx.beginPath();
-  ctx.moveTo(col * TILE,        row * TILE + fo % 24 + 8);
-  ctx.lineTo((col + 1) * TILE,  row * TILE + (fo + 4) % 24 + 8);
+  ctx.moveTo(col * TILE,       row * TILE + fo % 24 + 8);
+  ctx.lineTo((col+1) * TILE,   row * TILE + (fo+4) % 24 + 8);
   ctx.stroke();
 }
 
-// Pseudo-random grain per tile (stable across frames)
+// Stable grain per tile
 const GRAIN = Array.from({ length: COLS * ROWS }, (_, i) => {
-  const rng = (n) => { let x = Math.sin(n) * 43758; return x - Math.floor(x); };
-  return [rng(i), rng(i + 1000), rng(i + 2000)];
+  const rng = n => { const x = Math.sin(n) * 43758; return x - Math.floor(x); };
+  return [rng(i), rng(i+1000), rng(i+2000)];
 });
 
 function drawSand(col, row) {
   ctx.fillStyle = '#f5deb3';
   ctx.fillRect(col * TILE, row * TILE, TILE, TILE);
-
-  const [r1, r2, r3] = GRAIN[row * COLS + col];
+  const [r1, r2, r3] = GRAIN[row * COLS + col] || [0.3, 0.5, 0.7];
   ctx.fillStyle = 'rgba(180,150,80,0.25)';
-  ctx.fillRect(col * TILE + r1 * 52, row * TILE + r1 * 48 + 4, 2, 2);
-  ctx.fillRect(col * TILE + r2 * 44 + 8, row * TILE + r2 * 40 + 12, 2, 2);
-  ctx.fillRect(col * TILE + r3 * 36 + 16, row * TILE + r3 * 52 + 6, 2, 2);
+  ctx.fillRect(col*TILE + r1*52,      row*TILE + r1*48 + 4, 2, 2);
+  ctx.fillRect(col*TILE + r2*44 + 8,  row*TILE + r2*40 + 12, 2, 2);
+  ctx.fillRect(col*TILE + r3*36 + 16, row*TILE + r3*52 + 6, 2, 2);
 }
 
 function drawPalm(col, row) {
   drawSand(col, row);
-  const cx = col * TILE + TILE / 2;
+  const cx   = col * TILE + TILE / 2;
   const base = row * TILE + TILE;
+  const sway = Math.sin(tick * 0.025) * 4;
 
-  // Trunk
   ctx.fillStyle = '#8B6914';
   ctx.fillRect(cx - 4, base - TILE * 1.6, 8, TILE * 1.6);
 
-  // Fronds
-  const sway = Math.sin(tick * 0.025) * 4;
-  const fronds = [
-    { dx: -28 + sway, dy: -TILE * 1.7 },
-    { dx: 28  + sway, dy: -TILE * 1.7 },
-    { dx: -42 + sway, dy: -TILE * 1.4 },
-    { dx: 42  + sway, dy: -TILE * 1.4 },
-    { dx: 0   + sway, dy: -TILE * 1.9 },
-  ];
-  ctx.lineWidth = 3;
   const tipX = cx + sway;
   const tipY = base - TILE * 1.6;
+  const fronds = [
+    { dx: -28+sway, dy: -TILE*1.7 },
+    { dx:  28+sway, dy: -TILE*1.7 },
+    { dx: -42+sway, dy: -TILE*1.4 },
+    { dx:  42+sway, dy: -TILE*1.4 },
+    { dx:   0+sway, dy: -TILE*1.9 },
+  ];
+  ctx.lineWidth = 3;
   fronds.forEach(f => {
     ctx.strokeStyle = '#1a7a1a';
     ctx.beginPath();
@@ -392,20 +415,198 @@ function drawPalm(col, row) {
     ctx.stroke();
     ctx.fillStyle = '#2e8b57';
     ctx.beginPath();
-    ctx.ellipse(
-      cx + f.dx * 0.75, base + f.dy * 0.9,
-      11, 5,
-      Math.atan2(f.dy, f.dx),
-      0, Math.PI * 2
-    );
+    ctx.ellipse(cx + f.dx*0.75, base + f.dy*0.9, 11, 5, Math.atan2(f.dy, f.dx), 0, Math.PI*2);
     ctx.fill();
   });
 
-  // Coconut
   ctx.fillStyle = '#8B4513';
   ctx.beginPath();
-  ctx.arc(tipX - 4, tipY + 2, 5, 0, Math.PI * 2);
+  ctx.arc(tipX - 4, tipY + 2, 5, 0, Math.PI*2);
   ctx.fill();
+}
+
+// ── Decoration renderers ──────────────────────
+
+function drawUmbrella(col, row) {
+  const cx = col * TILE + TILE / 2;
+  const cy = row * TILE + TILE * 0.65;
+
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth   = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx, cy - TILE * 0.9);
+  ctx.stroke();
+
+  const colors = ['#e74c3c','#fff','#3498db','#fff','#e74c3c'];
+  const topX = cx, topY = cy - TILE * 0.9, radius = TILE * 0.55;
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = colors[i];
+    ctx.beginPath();
+    ctx.moveTo(topX, topY);
+    ctx.arc(topX, topY, radius, Math.PI/5*i + Math.PI, Math.PI/5*(i+1) + Math.PI);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// Tiki bar spanning 2 tiles at pixel (px, py)
+function drawTikiBar(px, py) {
+  const bw = TILE * 2;    // bar width
+  const bh = TILE * 0.9;  // bar height area
+
+  // Sand underneath
+  for (let c = 0; c < 2; c++) drawSand(Math.floor(px / TILE) + c, Math.floor(py / TILE));
+
+  // Counter top
+  ctx.fillStyle = '#a0522d';
+  ctx.fillRect(px + 4, py + TILE * 0.45, bw - 8, TILE * 0.22);
+  ctx.fillStyle = '#cd853f';
+  ctx.fillRect(px + 4, py + TILE * 0.42, bw - 8, TILE * 0.06);
+
+  // Bamboo poles (4 corners)
+  ctx.fillStyle = '#c8a85a';
+  const poles = [px+10, px + bw - 18];
+  poles.forEach(x => {
+    ctx.fillRect(x, py + TILE * 0.1, 8, TILE * 0.9);
+    // knuckles
+    for (let k = 0; k < 3; k++) {
+      ctx.fillStyle = '#a08040';
+      ctx.fillRect(x - 1, py + TILE*(0.2 + k*0.22), 10, 4);
+      ctx.fillStyle = '#c8a85a';
+    }
+  });
+
+  // Thatched roof
+  const roofY = py + TILE * 0.08;
+  ctx.fillStyle = '#b8860b';
+  ctx.beginPath();
+  ctx.moveTo(px - 8, roofY + TILE * 0.22);
+  ctx.lineTo(px + bw/2, roofY);
+  ctx.lineTo(px + bw + 8, roofY + TILE * 0.22);
+  ctx.closePath();
+  ctx.fill();
+
+  // Thatch strokes
+  ctx.strokeStyle = '#8b6914';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const tx = px + (bw+16) * i/7 - 8;
+    ctx.beginPath();
+    ctx.moveTo(tx, roofY + TILE*0.22);
+    ctx.lineTo(px + bw/2, roofY);
+    ctx.stroke();
+  }
+
+  // Drinks on counter
+  const drinkColors = ['#e74c3c','#f39c12','#1abc9c'];
+  drinkColors.forEach((col, i) => {
+    const dx = px + bw*0.25 + i*20;
+    const dy = py + TILE * 0.35;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(dx - 5, dy + 14);
+    ctx.lineTo(dx + 5, dy + 14);
+    ctx.lineTo(dx + 4, dy);
+    ctx.lineTo(dx - 4, dy);
+    ctx.closePath();
+    ctx.fill();
+    // straw
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(dx + 2, dy);
+    ctx.lineTo(dx + 6, dy - 10);
+    ctx.stroke();
+  });
+
+  // Sign
+  ctx.fillStyle = '#4a2c00';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('TIKI BAR', px + bw/2, py + TILE * 0.55);
+}
+
+// Pool spanning 3×2 tiles at pixel (px, py)
+function drawPool(px, py) {
+  const pw = TILE * 3;
+  const ph = TILE * 2;
+
+  // Sand underneath (3×2 tiles)
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 3; c++) {
+      drawSand(Math.floor(px/TILE)+c, Math.floor(py/TILE)+r);
+    }
+  }
+
+  // Pool surround (tile deck)
+  ctx.fillStyle = '#e8e0d0';
+  ctx.fillRect(px, py, pw, ph);
+
+  // Water
+  const poolInset = 12;
+  const poolW = pw - poolInset*2;
+  const poolH = ph - poolInset*2;
+  const poolX = px + poolInset;
+  const poolY = py + poolInset;
+
+  // Animated water color
+  const wave = Math.sin(tick * 0.04) * 5;
+  ctx.fillStyle = `rgb(${Math.round(30+wave)},${Math.round(140+wave)},${Math.round(200+wave)})`;
+  ctx.fillRect(poolX, poolY, poolW, poolH);
+
+  // Lane dividers
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth   = 1.5;
+  for (let i = 1; i < 3; i++) {
+    const lx = poolX + poolW * i/3;
+    ctx.beginPath();
+    ctx.setLineDash([6, 6]);
+    ctx.moveTo(lx, poolY);
+    ctx.lineTo(lx, poolY + poolH);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Ripples
+  const rTime = tick * 0.06;
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth   = 1;
+  [[0.3,0.4],[0.7,0.6],[0.5,0.25],[0.2,0.75],[0.8,0.3]].forEach(([rx,ry],i) => {
+    const rad = ((rTime + i*1.3) % 4) * 8 + 2;
+    ctx.beginPath();
+    ctx.arc(poolX + poolW*rx, poolY + poolH*ry, rad, 0, Math.PI*2);
+    ctx.stroke();
+  });
+
+  // Pool border
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth   = 2;
+  ctx.strokeRect(poolX, poolY, poolW, poolH);
+
+  // Ladder rungs at left edge
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth   = 3;
+  ctx.beginPath();
+  ctx.moveTo(poolX, poolY + 10);
+  ctx.lineTo(poolX, poolY + 40);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(poolX - 4, poolY + 10);
+  ctx.lineTo(poolX + 4, poolY + 10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(poolX - 4, poolY + 25);
+  ctx.lineTo(poolX + 4, poolY + 25);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#777';
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('POOL', px + pw/2, py + ph - 2);
 }
 
 function drawMap() {
@@ -418,67 +619,36 @@ function drawMap() {
     }
   }
 
-  // Shoreline foam strip
+  // Shoreline foam
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   const foamW = (Math.sin(tick * 0.03) * 0.5 + 0.5) * 6 + 2;
   ctx.fillRect(0, 3 * TILE, W, foamW);
 }
 
-// ── Beach umbrella decoration ────────────────
-function drawUmbrella(col, row) {
-  const cx = col * TILE + TILE / 2;
-  const cy = row * TILE + TILE * 0.65;
-
-  // Pole
-  ctx.strokeStyle = '#888';
-  ctx.lineWidth   = 3;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(cx, cy - TILE * 0.9);
-  ctx.stroke();
-
-  // Canopy segments
-  const colors  = ['#e74c3c', '#fff', '#3498db', '#fff', '#e74c3c'];
-  const topX    = cx;
-  const topY    = cy - TILE * 0.9;
-  const radius  = TILE * 0.55;
-  for (let i = 0; i < 5; i++) {
-    const a1 = (Math.PI / 5) * i + Math.PI;
-    const a2 = (Math.PI / 5) * (i + 1) + Math.PI;
-    ctx.fillStyle = colors[i];
-    ctx.beginPath();
-    ctx.moveTo(topX, topY);
-    ctx.arc(topX, topY, radius, a1, a2);
-    ctx.closePath();
-    ctx.fill();
-  }
-}
-
 // ── NPC renderer ─────────────────────────────
 function drawNPC(npc) {
-  const img = npcImgs[`chansoo_${npc.facing}`];
+  const img = npcImgs[npc.sprite];
   const px  = npc.tx * TILE;
   const py  = npc.ty * TILE;
 
-  if (img.complete && img.naturalWidth > 0) {
+  if (img && img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, px, py, TILE, TILE);
   } else {
-    // Fallback: colored silhouette
     ctx.fillStyle = '#02363d';
     ctx.fillRect(px + 18, py + 28, 28, 36);
     ctx.beginPath();
-    ctx.arc(px + 32, py + 22, 14, 0, Math.PI * 2);
+    ctx.arc(px + 32, py + 22, 14, 0, Math.PI*2);
     ctx.fill();
   }
 
   // Topic number badge
   ctx.fillStyle = '#02363d';
   ctx.beginPath();
-  ctx.arc(px + TILE - 12, py + 10, 10, 0, Math.PI * 2);
+  ctx.arc(px + TILE - 12, py + 10, 10, 0, Math.PI*2);
   ctx.fill();
-  ctx.fillStyle = '#a8e6e1';
-  ctx.font      = 'bold 11px monospace';
-  ctx.textAlign = 'center';
+  ctx.fillStyle    = '#a8e6e1';
+  ctx.font         = 'bold 11px monospace';
+  ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(npc.id, px + TILE - 12, py + 10);
 }
@@ -487,43 +657,37 @@ function drawSPACEPrompt(npc) {
   const cx     = npc.tx * TILE + TILE / 2;
   const cy     = npc.ty * TILE - 8;
   const bounce = Math.sin(tick * 0.12) * 4;
-
-  const text = '  SPACE  ';
+  const text   = '  SPACE  ';
   ctx.font = 'bold 11px monospace';
   const tw = ctx.measureText(text).width;
-  const pw = tw + 4;
-  const ph = 20;
-  const rx = cx - pw / 2;
-  const ry = cy - ph - bounce;
+  const pw = tw + 4, ph = 20;
+  const rx = cx - pw/2, ry = cy - ph - bounce;
 
   roundRect(rx, ry, pw, ph, 10);
-  ctx.fillStyle   = 'rgba(2, 54, 61, 0.88)';
+  ctx.fillStyle = 'rgba(2,54,61,0.88)';
   ctx.fill();
 
   ctx.fillStyle    = '#a8e6e1';
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, cx, ry + ph / 2);
+  ctx.fillText(text, cx, ry + ph/2);
 }
 
 // ── Player renderer ──────────────────────────
 function drawPlayer() {
-  let key;
-  if (player.moving) {
-    key = `${player.dir}_walk_${player.frame}`;
-  } else {
-    key = `idle_${player.dir}`;
-  }
+  const key = player.moving
+    ? `${player.dir}_walk_${player.frame}`
+    : `idle_${player.dir}`;
 
   const img = playerImgs[key];
   if (img && img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, player.x, player.y, TILE, TILE);
   } else {
-    ctx.fillStyle   = '#218c88';
+    ctx.fillStyle = '#218c88';
     ctx.fillRect(player.x + 14, player.y + 16, 36, 48);
-    ctx.fillStyle   = '#a8e6e1';
+    ctx.fillStyle = '#a8e6e1';
     ctx.beginPath();
-    ctx.arc(player.x + 32, player.y + 12, 12, 0, Math.PI * 2);
+    ctx.arc(player.x + 32, player.y + 12, 12, 0, Math.PI*2);
     ctx.fill();
   }
 }
@@ -538,23 +702,20 @@ function update() {
   if (keys['ArrowUp']    || keys['KeyW']) { dy = -SPEED; player.dir = 'up'; }
   if (keys['ArrowDown']  || keys['KeyS']) { dy =  SPEED; player.dir = 'down'; }
 
-  // Normalize diagonal
   if (dx && dy) { dx *= 0.707; dy *= 0.707; }
 
   player.moving = dx !== 0 || dy !== 0;
 
   if (player.moving) {
-    if (canWalkTo(player.x + dx, player.y))  player.x += dx;
-    if (canWalkTo(player.x, player.y + dy))  player.y += dy;
-
+    if (canWalkTo(player.x + dx, player.y)) player.x += dx;
+    if (canWalkTo(player.x, player.y + dy)) player.y += dy;
     player.frameTick++;
     if (player.frameTick >= WALK_FPS) {
       player.frameTick = 0;
       player.frame = (player.frame + 1) % 4;
     }
   } else {
-    player.frame     = 0;
-    player.frameTick = 0;
+    player.frame = player.frameTick = 0;
   }
 
   tick++;
@@ -562,22 +723,24 @@ function update() {
 
 // ── Render ───────────────────────────────────
 function render() {
-  ctx.clearRect(0, 0, W, H);
+  if (paused) return;   // freeze canvas while overlay is open → no flash
 
+  ctx.clearRect(0, 0, W, H);
   drawMap();
 
-  // Decorations (drawn on sand before characters)
-  drawUmbrella(6, 3);
+  // Decorations drawn on top of sand, before characters
+  drawUmbrella(7, 3);
+  drawTikiBar(5 * TILE, 6 * TILE);
+  drawPool(8 * TILE, 7 * TILE);
 
   const nearby = nearbyNPC();
 
-  // Draw NPCs (those in front rows rendered after player for z-depth)
+  // Z-sort: NPCs above player row drawn first (behind player)
   NPCS.forEach(npc => { if (npc.ty <= player.ty) drawNPC(npc); });
   drawPlayer();
   NPCS.forEach(npc => { if (npc.ty > player.ty)  drawNPC(npc); });
 
-  // SPACE prompt above the nearest NPC
-  if (nearby && !paused) drawSPACEPrompt(nearby);
+  if (nearby) drawSPACEPrompt(nearby);
 }
 
 // ── Main loop ────────────────────────────────
@@ -587,7 +750,6 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// Store ty on player for z-sort
 Object.defineProperty(player, 'ty', {
   get() { return Math.floor((this.y + TILE * 0.75) / TILE); },
 });
