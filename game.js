@@ -87,7 +87,7 @@ const CONTENT = {
         heading: 'The workflow',
         body: `<ol>
           <li>Feature request or bug is flagged in <strong>Slack</strong></li>
-          <li>A <strong>Jira ticket</strong> is created from Slack</li>
+          <li>A <strong>Jira ticket</strong> is created from Slack — <a href="https://turquoisehealth.atlassian.net/jira/software/c/projects/CLD/boards/718/backlog?selectedIssue=CLD-21" target="_blank">view the CLD board</a></li>
           <li>The <code>/jira</code> skill investigates the ticket and drafts a PR with the relevant code changes in <code>airflow_dags/</code></li>
           <li>The <code>/test-pr</code> skill runs a <strong>mini Clear Rates pipeline</strong> — a handful of billing codes, providers, and networks — to validate the changes end-to-end</li>
         </ol>`,
